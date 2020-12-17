@@ -18,9 +18,11 @@
 #define PRODUCERS_COUNT 3
 #define CONSUMERS_COUNT 3
 
-#define BUFFER_SIZE 2
+#define BUFFER_SIZE 1
 
 #define PERMS S_IRWXU | S_IRWXG | S_IRWXO //permition to read, write & execute by user, group & others
+
+#define COMSUMER_BORDER "\t\t\t\t\t\t"
 
 int sem_id = -1;
 int shm_id = -1;
@@ -68,7 +70,7 @@ void wait_children(const int n) {
         int status;
         const pid_t child_pid = wait(&status);
         if (child_pid == -1) {
-            perror("wait");
+            perror("wait error");
             exit(1);
         }
 
@@ -92,6 +94,7 @@ void producer(const int id) {
         // write next value in shared memory
         *(shm + *shm_prod) = i;
         printf("Producer %d (pid %d) produces %c\n", id, getpid(), i);
+		(*shm_prod)++;
 
         if (semop(sem_id, producer_v, 2) == -1) {
             perror("semop");
@@ -108,9 +111,10 @@ void consumer(const int id) {
             exit(1);
         }
 
-        printf("Consumer %d (pid %d) consumes %c\n", id, getpid(), *(shm + *shm_cons));
+        printf(COMSUMER_BORDER"Consumer %d (pid %d) consumes %c\n", id, getpid(), *(shm + *shm_cons));
 		if (*(shm + *shm_cons) == 122)
 			return;
+		(*shm_cons)++;
 
         if (semop(sem_id, consumer_v, 2) == -1) {
             perror("semop");
