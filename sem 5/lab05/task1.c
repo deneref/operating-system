@@ -18,7 +18,7 @@
 #define PRODUCERS_COUNT 3
 #define CONSUMERS_COUNT 3
 
-#define N 20
+#define BUFFER_SIZE 2
 
 #define PERMS S_IRWXU | S_IRWXG | S_IRWXO //permition to read, write & execute by user, group & others
 
@@ -92,7 +92,6 @@ void producer(const int id) {
         // write next value in shared memory
         *(shm + *shm_prod) = i;
         printf("Producer %d (pid %d) produces %c\n", id, getpid(), i);
-        (*shm_prod)++;
 
         if (semop(sem_id, producer_v, 2) == -1) {
             perror("semop");
@@ -112,7 +111,6 @@ void consumer(const int id) {
         printf("Consumer %d (pid %d) consumes %c\n", id, getpid(), *(shm + *shm_cons));
 		if (*(shm + *shm_cons) == 122)
 			return;
-        (*shm_cons)++;
 
         if (semop(sem_id, consumer_v, 2) == -1) {
             perror("semop");
@@ -121,11 +119,6 @@ void consumer(const int id) {
     }
 }
 
-void sigint_handler(const int sig) {
-    if (sig == SIGINT) {
-        printf("\nSIGINT signal was handled\n");
-    }
-}
 
 void init_semaphores() {
     sem_id = semget(IPC_PRIVATE, 3, IPC_CREAT | PERMS);
@@ -134,7 +127,7 @@ void init_semaphores() {
         exit(1);
     }
     if (semctl(sem_id, SEM_BIN,   SETVAL, 1) == -1 ||
-        semctl(sem_id, SEM_EMPTY, SETVAL, N) == -1 ||
+        semctl(sem_id, SEM_EMPTY, SETVAL, BUFFER_SIZE) == -1 ||
         semctl(sem_id, SEM_FULL,  SETVAL, 0) == -1) {
         perror("semctl");
         exit(1);
@@ -142,7 +135,8 @@ void init_semaphores() {
 }
 
 void init_shared_memory() {
-    shm_id = shmget(IPC_PRIVATE, (N + 3) * sizeof(int), IPC_CREAT | PERMS);
+	shm_id = shmget(IPC_PRIVATE, BUFFER_SIZE * sizeof(char), IPC_CREAT | PERMS);
+
     if (shm_id == -1) {
         perror("shmget");
         exit(1);
@@ -169,8 +163,6 @@ int main() {
 
     fork_children(PRODUCERS_COUNT, producer);
     fork_children(CONSUMERS_COUNT, consumer);
-
-    signal(SIGINT, sigint_handler);
 
     wait_children(PRODUCERS_COUNT + CONSUMERS_COUNT);
 
