@@ -18,7 +18,7 @@
 #define PRODUCERS_COUNT 3
 #define CONSUMERS_COUNT 3
 
-#define BUFFER_SIZE 1
+#define BUFFER_SIZE 3
 
 #define PERMS S_IRWXU | S_IRWXG | S_IRWXO //permition to read, write & execute by user, group & others
 
@@ -31,20 +31,20 @@ int *shm = NULL;
 int *shm_prod = NULL;
 int *shm_cons = NULL;
 
-struct sembuf producer_p[2] = {
+struct sembuf producer_start[2] = {
     {SEM_EMPTY, P, SEM_UNDO},
     {SEM_BIN,   P, SEM_UNDO}
 };
-struct sembuf producer_v[2] = {
+struct sembuf producer_stop[2] = {
     {SEM_BIN,   V, SEM_UNDO},
     {SEM_FULL,  V, SEM_UNDO}
 };
 
-struct sembuf consumer_p[2] = {
+struct sembuf consumer_start[2] = {
     {SEM_FULL,  P, SEM_UNDO},
     {SEM_BIN,   P, SEM_UNDO}
 };
-struct sembuf consumer_v[2] = {
+struct sembuf consumer_stop[2] = {
     {SEM_BIN,   V, SEM_UNDO},
     {SEM_EMPTY, V, SEM_UNDO}
 };
@@ -87,16 +87,19 @@ void wait_children(const int n) {
 void producer(const int id) {
     for (char i = 97; i<= 122; ++i) {
         sleep(rand() % 2);
-        if (semop(sem_id, producer_p, 2) == -1) {
+        if (semop(sem_id, producer_start, 2) == -1) {
             perror("semop");
             exit(1);
         }
         // write next value in shared memory
         *(shm + *shm_prod) = i;
         printf("Producer %d (pid %d) produces %c\n", id, getpid(), i);
+        printf("before addr -> %d ; %d; pos = %d\n", shm_prod, shm + *shm_prod, *shm_prod);
 		(*shm_prod)++;
+        (*shm_cons)++;
+        printf("before addr -> %d ; %d; pos = %d\n", shm_prod, shm + *shm_prod, *shm_prod);
 
-        if (semop(sem_id, producer_v, 2) == -1) {
+        if (semop(sem_id, producer_stop, 2) == -1) {
             perror("semop");
             exit(1);
         }
@@ -106,7 +109,7 @@ void producer(const int id) {
 void consumer(const int id) {
     while(1) {
         sleep(rand() % 2);
-        if (semop(sem_id, consumer_p, 2) == -1) {
+        if (semop(sem_id, consumer_start, 2) == -1) {
             perror("semop");
             exit(1);
         }
@@ -114,9 +117,14 @@ void consumer(const int id) {
         printf(COMSUMER_BORDER"Consumer %d (pid %d) consumes %c\n", id, getpid(), *(shm + *shm_cons));
 		if (*(shm + *shm_cons) == 122)
 			return;
-		(*shm_cons)++;
+        printf(COMSUMER_BORDER"before addr -> %d ; %d; pos = %d\n", shm_prod, shm + *shm_cons, *shm_cons);
+		(*shm_prod)--;
+        (*shm_cons)--;
+        printf(COMSUMER_BORDER"after addr -> %d ; %d; pos = %d\n", shm_prod, shm + *shm_cons, *shm_cons);
 
-        if (semop(sem_id, consumer_v, 2) == -1) {
+
+
+        if (semop(sem_id, consumer_stop, 2) == -1) {
             perror("semop");
             exit(1);
         }
@@ -139,7 +147,7 @@ void init_semaphores() {
 }
 
 void init_shared_memory() {
-	shm_id = shmget(IPC_PRIVATE, BUFFER_SIZE * sizeof(char), IPC_CREAT | PERMS);
+	shm_id = shmget(IPC_PRIVATE, (BUFFER_SIZE+2) * sizeof(int), IPC_CREAT | PERMS);
 
     if (shm_id == -1) {
         perror("shmget");
@@ -152,7 +160,7 @@ void init_shared_memory() {
     }
 
     shm_prod = shm;
-    shm_cons = shm + 1;
+    shm_cons = shm+1;
     *shm_prod = 0;
     *shm_cons = 0;
     shm = shm + 2;
