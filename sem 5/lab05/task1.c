@@ -18,7 +18,7 @@
 #define PRODUCERS_COUNT 3
 #define CONSUMERS_COUNT 3
 
-#define BUFFER_SIZE 3
+#define BUFFER_SIZE 1
 
 #define PERMS S_IRWXU | S_IRWXG | S_IRWXO //permition to read, write & execute by user, group & others
 
@@ -85,8 +85,8 @@ void wait_children(const int n) {
 }
 
 void producer(const int id) {
-    for (char i = 97; i<= 122; ++i) {
-        sleep(rand() % 2);
+    for (char i = 97; i<= 122; i++) {
+        sleep(rand() % 3);
         if (semop(sem_id, producer_start, 2) == -1) {
             perror("semop");
             exit(1);
@@ -94,15 +94,18 @@ void producer(const int id) {
         // write next value in shared memory
         *(shm + *shm_prod) = i;
         printf("Producer %d (pid %d) produces %c\n", id, getpid(), i);
-        printf("before addr -> %d ; %d; pos = %d\n", shm_prod, shm + *shm_prod, *shm_prod);
+        printf("before  %d; pos_prod = %d;\n", shm + *shm_prod, *shm_prod);
 		(*shm_prod)++;
-        (*shm_cons)++;
-        printf("before addr -> %d ; %d; pos = %d\n", shm_prod, shm + *shm_prod, *shm_prod);
+        (*shm_cons)--;
+        printf("before  %d; pos_prod = %d; \n",  shm + *shm_prod, *shm_prod);
 
         if (semop(sem_id, producer_stop, 2) == -1) {
             perror("semop");
             exit(1);
         }
+
+        if (i == 122)
+            exit(0);
     }
 }
 
@@ -114,20 +117,22 @@ void consumer(const int id) {
             exit(1);
         }
 
-        printf(COMSUMER_BORDER"Consumer %d (pid %d) consumes %c\n", id, getpid(), *(shm + *shm_cons));
-		if (*(shm + *shm_cons) == 122)
-			return;
-        printf(COMSUMER_BORDER"before addr -> %d ; %d; pos = %d\n", shm_prod, shm + *shm_cons, *shm_cons);
+        printf(COMSUMER_BORDER"Consumer %d (pid %d) consumes %c\n", id, getpid(), *(shm + (*shm_prod)-1));
+
+        printf(COMSUMER_BORDER"before  %d; pos_prod = %d; pos_prod-1 = %d\n", shm + *shm_prod-1, *shm_prod, *shm_prod-1);
 		(*shm_prod)--;
         (*shm_cons)--;
-        printf(COMSUMER_BORDER"after addr -> %d ; %d; pos = %d\n", shm_prod, shm + *shm_cons, *shm_cons);
-
+        printf(COMSUMER_BORDER"after  %d; pos_prod = %d; pos_prod-1 = %d\n", shm + *shm_prod-1, *shm_prod, *shm_prod-1);
 
 
         if (semop(sem_id, consumer_stop, 2) == -1) {
             perror("semop");
             exit(1);
         }
+
+        if (*(shm + (*shm_cons)) == 122)
+			exit(0);
+
     }
 }
 
@@ -162,7 +167,7 @@ void init_shared_memory() {
     shm_prod = shm;
     shm_cons = shm+1;
     *shm_prod = 0;
-    *shm_cons = 0;
+    *shm_cons = 1;
     shm = shm + 2;
 }
 
