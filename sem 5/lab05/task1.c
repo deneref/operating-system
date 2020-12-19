@@ -18,7 +18,7 @@
 #define PRODUCERS_COUNT 3
 #define CONSUMERS_COUNT 3
 
-#define BUFFER_SIZE 1
+#define BUFFER_SIZE 3
 
 #define PERMS S_IRWXU | S_IRWXG | S_IRWXO //permition to read, write & execute by user, group & others
 
@@ -28,8 +28,7 @@ int sem_id = -1;
 int shm_id = -1;
 
 int *shm = NULL;
-int *shm_prod = NULL;
-int *shm_cons = NULL;
+int *shm_pos = NULL;
 
 struct sembuf producer_start[2] = {
     {SEM_EMPTY, P, SEM_UNDO},
@@ -92,12 +91,9 @@ void producer(const int id) {
             exit(1);
         }
         // write next value in shared memory
-        *(shm + *shm_prod) = i;
+        *(shm + *shm_pos) = i;
         printf("Producer %d (pid %d) produces %c\n", id, getpid(), i);
-        printf("before  %d; pos_prod = %d;\n", shm + *shm_prod, *shm_prod);
-		(*shm_prod)++;
-        (*shm_cons)--;
-        printf("before  %d; pos_prod = %d; \n",  shm + *shm_prod, *shm_prod);
+		(*shm_pos)++;
 
         if (semop(sem_id, producer_stop, 2) == -1) {
             perror("semop");
@@ -117,12 +113,8 @@ void consumer(const int id) {
             exit(1);
         }
 
-        printf(COMSUMER_BORDER"Consumer %d (pid %d) consumes %c\n", id, getpid(), *(shm + (*shm_prod)-1));
-
-        printf(COMSUMER_BORDER"before  %d; pos_prod = %d; pos_prod-1 = %d\n", shm + *shm_prod-1, *shm_prod, *shm_prod-1);
-		(*shm_prod)--;
-        (*shm_cons)--;
-        printf(COMSUMER_BORDER"after  %d; pos_prod = %d; pos_prod-1 = %d\n", shm + *shm_prod-1, *shm_prod, *shm_prod-1);
+        printf(COMSUMER_BORDER"Consumer %d (pid %d) consumes %c\n", id, getpid(), *(shm + (*shm_pos)-1));
+		(*shm_pos)--;
 
 
         if (semop(sem_id, consumer_stop, 2) == -1) {
@@ -130,7 +122,7 @@ void consumer(const int id) {
             exit(1);
         }
 
-        if (*(shm + (*shm_cons)) == 122)
+        if (*(shm + (*shm_pos)) == 122)
 			exit(0);
 
     }
@@ -164,10 +156,8 @@ void init_shared_memory() {
         exit(1);
     }
 
-    shm_prod = shm;
-    shm_cons = shm+1;
-    *shm_prod = 0;
-    *shm_cons = 1;
+    shm_pos = shm;
+    *shm_pos = 0;
     shm = shm + 2;
 }
 
