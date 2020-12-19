@@ -1,6 +1,6 @@
 *.png
 *.aux
-*.syntex.gz
+*.gz
 *.toc
 *.out
 */.vscode
