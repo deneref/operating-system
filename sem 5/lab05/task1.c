@@ -29,6 +29,8 @@ int shm_id = -1;
 
 int *shm = NULL;
 int *shm_pos = NULL;
+int *produced_value = NULL;
+int *last_consumed = NULL;
 
 struct sembuf producer_start[2] = {
     {SEM_EMPTY, P, SEM_UNDO},
@@ -84,47 +86,51 @@ void wait_children(const int n) {
 }
 
 void producer(const int id) {
-    for (char i = 97; i<= 122; i++) {
+    while(1) {
         sleep(rand() % 3);
+        
+        if(*produced_value > 122)
+        	exit(0);
+            
         if (semop(sem_id, producer_start, 2) == -1) {
             perror("semop");
             exit(1);
         }
-        // write next value in shared memory
-        *(shm + *shm_pos) = i;
-        printf("Producer %d (pid %d) produces %c\n", id, getpid(), i);
-		(*shm_pos)++;
 
-        if (semop(sem_id, producer_stop, 2) == -1) {
-            perror("semop");
-            exit(1);
-        }
+	// write next value in shared memory
+	*(shm + *shm_pos) = *produced_value;
+	printf("Producer %d (pid %d) produces %c\n", id, getpid(), *produced_value);
+	(*shm_pos)++;
+	(*produced_value)++;
 
-        if (i == 122)
-            exit(0);
+	if (semop(sem_id, producer_stop, 2) == -1) {
+		perror("semop");
+		exit(1);
+	}
+
     }
 }
 
 void consumer(const int id) {
     while(1) {
         sleep(rand() % 2);
+        
+        if (*last_consumed == 122)
+        	exit(0);
+        
         if (semop(sem_id, consumer_start, 2) == -1) {
             perror("semop");
             exit(1);
         }
-
-        printf(COMSUMER_BORDER"Consumer %d (pid %d) consumes %c\n", id, getpid(), *(shm + (*shm_pos)-1));
-		(*shm_pos)--;
-
-
-        if (semop(sem_id, consumer_stop, 2) == -1) {
-            perror("semop");
-            exit(1);
-        }
-
-        if (*(shm + (*shm_pos)) == 122)
-			exit(0);
-
+        
+	printf(COMSUMER_BORDER"Consumer %d (pid %d) consumes %c\n", id, getpid(), *(shm +(*shm_pos)-1));
+	(*shm_pos)--;
+	*(last_consumed)++;
+	printf(COMSUMER_BORDER"PRODUCED_VALUE %d LAST_CONSUMED %d\n", *produced_value, *last_consumed);
+	if (semop(sem_id, consumer_stop, 2) == -1) {
+		perror("semop");
+		exit(1);
+	}
     }
 }
 
@@ -144,7 +150,7 @@ void init_semaphores() {
 }
 
 void init_shared_memory() {
-	shm_id = shmget(IPC_PRIVATE, (BUFFER_SIZE+2) * sizeof(int), IPC_CREAT | PERMS);
+	shm_id = shmget(IPC_PRIVATE, (BUFFER_SIZE+3) * sizeof(int), IPC_CREAT | PERMS);
 
     if (shm_id == -1) {
         perror("shmget");
@@ -158,7 +164,11 @@ void init_shared_memory() {
 
     shm_pos = shm;
     *shm_pos = 0;
-    shm = shm + 2;
+    produced_value = shm+1;
+    last_consumed = shm+2;
+    *produced_value = 97;
+    *last_consumed = 97;
+    shm = shm + 3;
 }
 
 int main() {
