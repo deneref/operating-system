@@ -4,3 +4,7 @@
 *.toc
 *.out
 */.vscode
+/.vscode
+*/.idea
+/.idea
+/cmake-build-debug
