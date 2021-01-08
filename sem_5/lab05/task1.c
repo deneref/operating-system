@@ -115,7 +115,7 @@ void consumer(const int id) {
     while(1) {
         sleep(rand() % 2);
         
-        if (*last_consumed == 122)
+        if (*last_consumed >= 122)
         	exit(0);
         
         if (semop(sem_id, consumer_start, 2) == -1) {
@@ -124,9 +124,9 @@ void consumer(const int id) {
         }
         
 	printf(COMSUMER_BORDER"Consumer %d (pid %d) consumes %c\n", id, getpid(), *(shm +(*shm_pos)-1));
+	*(last_consumed) = *(shm +(*shm_pos)-1);
 	(*shm_pos)--;
-	*(last_consumed)++;
-	printf(COMSUMER_BORDER"PRODUCED_VALUE %d LAST_CONSUMED %d\n", *produced_value, *last_consumed);
+	
 	if (semop(sem_id, consumer_stop, 2) == -1) {
 		perror("semop");
 		exit(1);
@@ -150,7 +150,7 @@ void init_semaphores() {
 }
 
 void init_shared_memory() {
-	shm_id = shmget(IPC_PRIVATE, (BUFFER_SIZE+3) * sizeof(int), IPC_CREAT | PERMS);
+    shm_id = shmget(IPC_PRIVATE, (BUFFER_SIZE+3) * sizeof(int), IPC_CREAT | PERMS);
 
     if (shm_id == -1) {
         perror("shmget");
@@ -164,11 +164,13 @@ void init_shared_memory() {
 
     shm_pos = shm;
     *shm_pos = 0;
-    produced_value = shm+1;
-    last_consumed = shm+2;
+    produced_value = shm+2;
+    last_consumed = shm+1;
+
     *produced_value = 97;
     *last_consumed = 97;
     shm = shm + 3;
+
 }
 
 int main() {
