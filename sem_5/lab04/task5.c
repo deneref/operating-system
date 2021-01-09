@@ -33,56 +33,51 @@ int main(){
 	
 	child_1 = fork();
 	if(child_1 == -1){
-		perror("Coulnd't fork child #1");
+		perror("Coulnd't fork child #1\n");
 		exit(1);
 	}
 	if (child_1 == 0){
-		close(fd[1]);
+		printf("child #1 %d\n", getpid());
+		close(fd[0]);
 		sleep(SLEEP_TIME);
 		if (flag){
-			char msg[MESSAGE_SIZE];
-			if (read(fd[0], msg, MESSAGE_SIZE) > 0){
-				printf("Child #1 read from parent %s\n", msg);
+			if (write(fd[1], "Hello, my parent! From child #1\n", MESSAGE_SIZE) > 0)
+					printf("Child #1 sent his first greeting\n");
 			}
-		}
-		
 		return 0;
-	}
+		}
 	if (child_1 > 0){
 		child_2 = fork();
 		if(child_2 == -1){
-			perror("Coulnd't fork child #2");
+			perror("Coulnd't fork child #2\n");
 			exit(1);
 	        }
 	        if (child_2 == 0){
-	        	close(fd[1]);
+	        	close(fd[0]);
 	        
 	        sleep(SLEEP_TIME);
 	        if (flag){
-			char msg[MESSAGE_SIZE];
-			if (read(fd[0], msg, MESSAGE_SIZE) > 0){
-				printf("Child #2 read from parent %s\n", msg);
+			if (write(fd[1], "Hello, my parent! From child #2\n", MESSAGE_SIZE) > 0)
+					printf("Child #2 sent his first greeting\n");
 			}
-		}
+		
 			
 		return 0;
-	        }else{
-	        	close(fd[0]);
+	}else{
+	        	close(fd[1]);
 	        	printf("Parent's waiting for Ctrl+C being pressed to send messages from children\n");
 		 	sleep(SLEEP_TIME);
 		 	
 		 	if (flag){
+		 		char msg1[MESSAGE_SIZE];
+		 		char msg2[MESSAGE_SIZE];
 		 		//writing in pipe if we cought the signal
-				if (write(fd[1], "Hello, my child!\n", MESSAGE_SIZE) > 0)
-					printf("Parent sent his first greeting\n");
-				if (write(fd[1], "Hello again, my child!\n", MESSAGE_SIZE) > 0)
-					printf("Parent sent his second greeting\n");
-		 	}/*else{
-		 		if (write(fd[1], "hoth\n", MESSAGE_SIZE) > 0)
-					printf("Parent sent his first greeting\n");
-				if (write(fd[1], "noth!\n", MESSAGE_SIZE) > 0)
-					printf("Parent sent his second greeting\n");
-		 	}*/
+				if (read(fd[0], msg1, MESSAGE_SIZE) > 0)
+					printf("Parent read from his child %s\n", msg1);
+				if (read(fd[0], msg2, MESSAGE_SIZE) > 0)
+					printf("Parent read from his child %s\n", msg2);
+		 	}
+		 	
 			pid_t child_pid;
 			int status;
 			 			
@@ -106,8 +101,8 @@ int main(){
 		 return 0;
 	        }
 	}
+	}
 	
 	
-}
 
 
