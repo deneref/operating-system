@@ -25,6 +25,7 @@ int main(){
 			exit(1);
 	        }
 	        if (child_2 == 0){
+	        	sleep(1);
 	        	printf("\nChild #2: pid=%d; group=%d; ppid=%d\n",
 		  	 getpid(), getpgrp(), getppid());
 		 

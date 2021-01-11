@@ -36,7 +36,6 @@ int main(){
 			exit(1);
 	        }
 	        if (child_2 == 0){
-	        	sleep(1);
 	        	close(fd[0]);
 			if (write(fd[1], "Hello from child #2, parent!\n", MESSAGE_SIZE) > 0)
 				printf("Child #2 sent a greeting to the parent\n");

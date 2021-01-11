@@ -38,9 +38,9 @@ int main(){
 	}
 	if (child_1 == 0){
 		printf("child #1 %d\n", getpid());
-		close(fd[0]);
 		sleep(SLEEP_TIME);
 		if (flag){
+			close(fd[0]);
 			if (write(fd[1], "Hello, my parent! From child #1\n", MESSAGE_SIZE) > 0)
 					printf("Child #1 sent his first greeting\n");
 			}
@@ -52,11 +52,10 @@ int main(){
 			perror("Coulnd't fork child #2\n");
 			exit(1);
 	        }
-	        if (child_2 == 0){
-	        	close(fd[0]);
-	        
+	        if (child_2 == 0);
 	        sleep(SLEEP_TIME);
 	        if (flag){
+	        	close(fd[0]);
 			if (write(fd[1], "Hello, my parent! From child #2\n", MESSAGE_SIZE) > 0)
 					printf("Child #2 sent his first greeting\n");
 			}
@@ -64,11 +63,12 @@ int main(){
 			
 		return 0;
 	}else{
-	        	close(fd[1]);
+	        	
 	        	printf("Parent's waiting for Ctrl+C being pressed to send messages from children\n");
 		 	sleep(SLEEP_TIME);
 		 	
 		 	if (flag){
+		 		close(fd[1]);
 		 		char msg1[MESSAGE_SIZE];
 		 		char msg2[MESSAGE_SIZE];
 		 		//writing in pipe if we cought the signal
