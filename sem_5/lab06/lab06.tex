@@ -1,0 +1,260 @@
+\documentclass[12pt]{report}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+%\usepackage[14pt]{extsizes}
+\usepackage{listings}
+\usepackage{xcolor}
+
+% Для листинга кода:
+\lstset{ %
+	language= C,                 % выбор языка для подсветки 
+	basicstyle=\small\sffamily, % размер и начертание шрифта для подсветки кода
+	numbers=left,               % где поставить нумерацию строк (слева\справа)
+	numberstyle=\tiny,           % размер шрифта для номеров строк
+	stepnumber=1,                   % размер шага между двумя номерами строк
+	numbersep=5pt,                % как далеко отстоят номера строк от подсвечиваемого кода
+	showspaces=false,            % показывать или нет пробелы специальными отступами
+	showstringspaces=false,      % показывать или нет пробелы в строках
+	showtabs=false,             % показывать или нет табуляцию в строках            
+	tabsize=2,                 % размер табуляции по умолчанию равен 2 пробелам
+	captionpos=t,              % позиция заголовка вверху [t] или внизу [b] 
+	breaklines=true,           % автоматически переносить строки (да\нет)
+	breakatwhitespace=false, % переносить строки только если есть пробел
+	escapeinside={\#*}{*)}   % если нужно добавить комментарии в коде
+}
+
+\definecolor{comment}{RGB}{0,128,0} % dark green
+\definecolor{string}{RGB}{255,0,0}  % red
+\definecolor{keyword}{RGB}{0,0,255} % blue
+
+\lstdefinestyle{CStyle}{
+	commentstyle=\color{comment},
+	stringstyle=\color{string},
+	keywordstyle=\color{keyword},
+	basicstyle=\footnotesize\ttfamily,
+	numbers=left,
+	numberstyle=\tiny,
+	numbersep=5pt,
+	frame=lines,
+	breaklines=true,
+	prebreak=\raisebox{0ex}[0ex][0ex]{\ensuremath{\hookleftarrow}},
+	showstringspaces=false,
+	upquote=true,
+	tabsize=2,
+}
+
+% Для измененных титулов глав:
+\usepackage{titlesec, blindtext, color} % подключаем нужные пакеты
+\definecolor{gray75}{gray}{0.75} % определяем цвет
+\newcommand{\hsp}{\hspace{20pt}} % длина линии в 20pt
+% titleformat определяет стиль
+\titleformat{\chapter}[hang]{\Huge\bfseries}{\thechapter\hsp\textcolor{gray75}{|}\hsp}{0pt}{\Huge\bfseries}
+
+%отступы по краям
+\usepackage{geometry}
+\geometry{verbose, a4paper,tmargin=2cm, bmargin=2cm, rmargin=1.5cm, lmargin = 3cm}
+% межстрочный интервал
+\usepackage{setspace}
+\onehalfspacing
+\usepackage{float}
+% plot
+\usepackage{pgfplots}
+\usepackage{filecontents}
+\usepackage{amsmath}
+\usepackage{tikz,pgfplots}
+\usetikzlibrary{datavisualization}
+\usetikzlibrary{datavisualization.formats.functions}
+
+\usepackage{graphicx}
+\graphicspath{{src/}}
+\DeclareGraphicsExtensions{.pdf,.png,.jpg}
+
+\usepackage{geometry}
+\geometry{verbose, a4paper,tmargin=2cm, bmargin=2cm, rmargin=1.5cm, lmargin = 3cm}
+\usepackage{indentfirst}
+\setlength{\parindent}{1.4cm}
+
+\usepackage{titlesec}
+\titlespacing{\chapter}{0pt}{12pt plus 4pt minus 2pt}{0pt}
+
+
+\begin{document}
+%\def\chaptername{} % убирает "Глава"
+\begin{titlepage}
+	\centering
+	{\scshape\LARGE МГТУ им. Баумана \par}
+	\vspace{3cm}
+	{\scshape\Large Лабораторная работа №6\par}
+	\vspace{0.5cm}	
+	{\scshape\Large По курсу: "Операционные системы"\par}
+	\vspace{1.5cm}
+	\centering
+	 {\huge\bfseries Реализация монитора Хоара «Читатели-писатели» под ОС Windows.\par}
+	\vspace{2cm}
+	\Large Работу выполнил: Мокеев Даниил, ИУ7-56\par
+	\vspace{0.5cm}
+	\Large Преподаватель:  Рязанова Н.Ю.\par
+
+	\vfill
+	\large \textit {Москва, 2020} \par
+\end{titlepage}
+
+
+\newpage
+
+\section{Листинг кода алгоритмов}
+
+\begin{lstlisting}[label=one,caption = Реализация монитора Хоара, style = CStyle]
+#include <stdio.h>
+#include <stdbool.h>
+#include <windows.h>
+
+#define READERS 5
+#define WRITERS 3
+#define WRITERS_ITTER 4
+#define SLEEP_TIME 200
+#define READER_BORDER "\t\t\t\t\t\t"
+
+HANDLE writers[WRITERS];
+HANDLE readers[READERS];
+
+HANDLE mutex;
+HANDLE can_read;
+HANDLE can_write;
+volatile LONG waiting_writers = 0;
+volatile LONG waiting_readers = 0;
+volatile LONG active_readers = 0;
+bool is_writer_active = false;
+
+int value = 0;
+
+void start_read(void) {
+	InterlockedIncrement(&waiting_readers);
+	if (is_writer_active || WaitForSingleObject(can_write, 0) == WAIT_OBJECT_0) {
+		WaitForSingleObject(can_read, INFINITE);
+	}
+	
+	WaitForSingleObject(mutex, INFINITE);
+	
+	InterlockedDecrement(&waiting_readers);
+	InterlockedIncrement(&active_readers);
+	
+	SetEvent(can_read);
+	
+	ReleaseMutex(mutex);
+}
+
+void stop_read(void) {
+	InterlockedDecrement(&active_readers);
+	
+	if (waiting_readers == 0) {
+		SetEvent(can_write);
+	}
+}
+
+DWORD WINAPI reader(LPVOID lpParams) {
+	while (value < 3 * WRITERS_ITTER) {
+		start_read();
+		printf(READER_BORDER"Reader #%ld; read value: %d\n", (int) lpParams, value);
+		stop_read();
+		Sleep(SLEEP_TIME);
+	}
+	
+	return EXIT_SUCCESS;
+}
+
+void start_write(void) {
+	InterlockedIncrement(&waiting_writers);
+	if (is_writer_active || active_readers > 0) {
+		WaitForSingleObject(can_write, INFINITE);
+	}
+	
+	InterlockedDecrement(&waiting_writers);
+	is_writer_active = true;
+	ResetEvent(can_write);
+}
+
+void stop_write(void) {
+	is_writer_active = false;
+	
+	if (!waiting_writers) {
+		SetEvent(can_read);
+	} else {
+		SetEvent(can_write);
+	}
+}
+
+DWORD WINAPI writer(LPVOID lpParams) {
+	int i = 0;
+	for (int i = 0; i < WRITERS_ITTER; ++i) {
+		start_write();
+		
+		value++;
+		printf("Writer #%ld wrote value: %ld\n", (int) lpParams, value);
+		
+		stop_write();
+		Sleep(SLEEP_TIME);
+	}
+	
+	return EXIT_SUCCESS;
+}
+
+int init_handles(void) {
+	if ((mutex = CreateMutex(NULL, FALSE, NULL)) == NULL) {
+		perror("error while CreateMutex");
+		return EXIT_FAILURE;
+	}
+	
+	if ((can_read = CreateEvent(NULL, TRUE, TRUE, NULL)) == NULL) {
+		perror("error while CreateEvent can_read");
+		return EXIT_FAILURE;
+	}
+	if ((can_write = CreateEvent(NULL, FALSE, TRUE, NULL)) == NULL) {
+		perror("error while CreateEvent can_write");
+		return EXIT_FAILURE;
+	}
+	
+	return EXIT_SUCCESS;
+}
+
+int create_threads(HANDLE *threads, int threads_count, DWORD (*on_thread)(LPVOID)) {
+	for (int i = 0; i < threads_count; ++i) {
+		if ((threads[i] = CreateThread(NULL, 0, on_thread, (LPVOID) i, 0, NULL)) == NULL) {
+			perror("error while CreateThread");
+			return EXIT_FAILURE;
+		}
+	}
+	
+	return EXIT_SUCCESS;
+}
+
+int main(void) {
+	setbuf(stdout, NULL);
+	
+	int rc = EXIT_SUCCESS;
+	
+	if ((rc = init_handles()) != EXIT_SUCCESS
+	|| (rc = create_threads(writers, WRITERS, writer)) != EXIT_SUCCESS
+	|| (rc = create_threads(readers, READERS, reader)) != EXIT_SUCCESS) {
+		return rc;
+	}
+	
+	WaitForMultipleObjects(WRITERS, writers, TRUE, INFINITE);
+	WaitForMultipleObjects(READERS, readers, TRUE, INFINITE);
+	
+	CloseHandle(mutex);
+	CloseHandle(can_read);
+	CloseHandle(can_write);
+	
+	return rc;
+}
+\end{lstlisting}
+\begin{figure}[H]
+	\centering{\includegraphics[scale=1]{example.png}} 
+	\caption{Пример работы программы.}
+	\label{ris:1}
+\end{figure}
+
+
+
+\end{document}

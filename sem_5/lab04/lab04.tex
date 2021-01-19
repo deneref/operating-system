@@ -3,45 +3,10 @@
 \usepackage[russian]{babel}
 %\usepackage[14pt]{extsizes}
 \usepackage{listings}
+\usepackage{nasm/lang}  % include custom language for NASM assembly.
+\usepackage{nasm/style} % include custom style for NASM assembly.
 \usepackage{xcolor}
 
-% Для листинга кода:
-\lstset{ %
-language= C,                 % выбор языка для подсветки 
-basicstyle=\small\sffamily, % размер и начертание шрифта для подсветки кода
-numbers=left,               % где поставить нумерацию строк (слева\справа)
-numberstyle=\tiny,           % размер шрифта для номеров строк
-stepnumber=1,                   % размер шага между двумя номерами строк
-numbersep=5pt,                % как далеко отстоят номера строк от подсвечиваемого кода
-showspaces=false,            % показывать или нет пробелы специальными отступами
-showstringspaces=false,      % показывать или нет пробелы в строках
-showtabs=false,             % показывать или нет табуляцию в строках            
-tabsize=2,                 % размер табуляции по умолчанию равен 2 пробелам
-captionpos=t,              % позиция заголовка вверху [t] или внизу [b] 
-breaklines=true,           % автоматически переносить строки (да\нет)
-breakatwhitespace=false, % переносить строки только если есть пробел
-escapeinside={\#*}{*)}   % если нужно добавить комментарии в коде
-}
-
-\definecolor{comment}{RGB}{0,128,0} % dark green
-\definecolor{string}{RGB}{255,0,0}  % red
-\definecolor{keyword}{RGB}{0,0,255} % blue
-
-\lstdefinestyle{CStyle}{
-	commentstyle=\color{comment},
-	stringstyle=\color{string},
-	keywordstyle=\color{keyword},
-	basicstyle=\footnotesize\ttfamily,
-	numbers=left,
-	numberstyle=\tiny,
-	numbersep=5pt,
-	frame=lines,
-	breaklines=true,
-	prebreak=\raisebox{0ex}[0ex][0ex]{\ensuremath{\hookleftarrow}},
-	showstringspaces=false,
-	upquote=true,
-	tabsize=2,
-}
 
 % Для измененных титулов глав:
 \usepackage{titlesec, blindtext, color} % подключаем нужные пакеты
@@ -79,419 +44,587 @@ escapeinside={\#*}{*)}   % если нужно добавить коммента
 
 
 \begin{document}
-%\def\chaptername{} % убирает "Глава"
-\begin{titlepage}
-	\centering
-	{\scshape\LARGE МГТУ им. Баумана \par}
-	\vspace{3cm}
-	{\scshape\Large Лабораторная работа №4\par}
-	\vspace{0.5cm}	
-	{\scshape\Large По курсу: "Операционные системы"\par}
-	\vspace{1.5cm}
-	\centering
-	{\huge\bfseries Процессы. \par}
-	\centering
-	 {\huge\bfseries Системные вызовы fork() и exec().\par}
-	\vspace{2cm}
-	\Large Работу выполнил: Мокеев Даниил, ИУ7-56\par
-	\vspace{0.5cm}
-	\Large Преподаватель:  Рязанова Н.Ю.\par
-
-	\vfill
-	\large \textit {Москва, 2020} \par
-\end{titlepage}
-
-
-\newpage
-
-\section{Листинг кода алгоритмов}
-В данном разделе будут приведены листинги кода реализованных программ. 
-
-\begin{lstlisting}[label=one,caption = Процессы-сироты, style = CStyle]
-#include <stdio.h>
-#include <stdlib.h>
-
-int main(){
-	int child_1, child_2;
-	child_1 = fork();
-	if(child_1 == -1){
-		perror("Coulnd't fork child #1");
-		exit(1);
-	}
-	if (child_1 == 0){
-		sleep(1);
-		printf("Child #1: pid=%d; group=%d; ppid=%d\n",
-		 getpid(), getpgrp(), getppid());
-		 
-		 return 0;
-	}
-	if (child_1 > 0){
-		child_2 = fork();
-		if(child_2 == -1){
-			perror("Coulnd't fork child #2");
-			exit(1);
-	        }
-	        if (child_2 == 0){
-	        	printf("\nChild #2: pid=%d; group=%d; ppid=%d\n",
-		  	 getpid(), getpgrp(), getppid());
-		 
-		 return 0;
-	        }else{
-	       	printf("Parent: pid=%d; group=%d; ppid=%d\n",
-		  	 getpid(), getpgrp(), getppid());
-		 
-		 return 0;
-	        }
-	}
-}
-\end{lstlisting}
-\begin{figure}[H]
-	\centering{\includegraphics[scale=1]{task1.png}} 
-	\caption{Пример работы программы №1}
-	\label{ris:task1}
-\end{figure}
-\newpage
-\begin{lstlisting}[label=two,caption = Использование вызова wait(), style = CStyle]
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-
-int main(){
-	int child_1, child_2;
-	child_1 = fork();
-	if(child_1 == -1){
-		perror("Coulnd't fork child #1");
-		exit(1);
-	}
-	if (child_1 == 0){
-		sleep(1);
-		printf("Child #1: pid=%d; group=%d; ppid=%d\n",
-		 getpid(), getpgrp(), getppid());
-		 
-		 return 0;
-	}
-	if (child_1 > 0){
-		child_2 = fork();
-		if(child_2 == -1){
-			perror("Coulnd't fork child #2");
-			exit(1);
-	        }
-	        if (child_2 == 0){
-	        	printf("\nChild #2: pid=%d; group=%d; ppid=%d\n",
-		  	 getpid(), getpgrp(), getppid());
-		 
-		 return 0;
-	        }else{	
-	        	sleep(2);
-	       	printf("Parent: pid=%d; group=%d; ppid=%d\n",
-		  	 getpid(), getpgrp(), getppid());
-		 	
-		 	pid_t child_pid;
-		 	int status;
-		 	
-		 	child_pid = wait(&status);
-		 	if (WIFEXITED(status))
-		 		printf("Parent: child %d finished with code %d\n",
-		 		 child_pid, WEXITSTATUS(status) );
-		 	else if (WIFSTOPPED(status))
-		 		printf("Parent: child %d finished with code %d\n",
-		 		 child_pid, WSTOPSIG(status) );
-		 return 0;
-	        }
-	}
-	
-}
-\end{lstlisting}
-\begin{figure}[H]
-	\centering{\includegraphics[scale=0.9]{task2.png}} 
-	\caption{Пример работы программы №2}
-	\label{ris:task2}
-\end{figure}
-\newpage
-\begin{lstlisting}[label=three,caption =  Использование вызова exec(), style = CStyle]
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-
-int main(){
-	int child_1, child_2;
-	child_1 = fork();
-	if(child_1 == -1){
-		perror("Coulnd't fork child #1");
-		exit(1);
-	}
-	if (child_1 == 0){
-		sleep(1);
-		printf("\nChild #1 executes ps -al\n\n");
-		if(execlp("ps", "ps", "-al", (char*)NULL) == -1){
-			printf("Couldn't exec ps command\n");
-			exit(1);
-		}
-		 
-		 return 0;
-	}
-	if (child_1 > 0){
-		child_2 = fork();
-		if(child_2 == -1){
-			perror("Coulnd't fork child #2");
-			exit(1);
-	        }
-	        if (child_2 == 0){
-	        	printf("\nChild #2 executes ls -l\n\n");
-		 	if(execlp("ls", "ls", "-l", (char*)NULL) == -1){
-				printf("Couldn't exec ps command\n");
-				exit(1);
-			}
-		 return 0;
-	        }else{
-	       	printf("\nParent: pid=%d; group=%d; ppid=%d\n",
-		  	 getpid(), getpgrp(), getppid());
-		  	 
-		  	pid_t child_pid;
-		 	int status;
-		 	
-		 	//waiting for the second child to finish
-		 	child_pid = wait(&status);
-		 	if (WIFEXITED(status))
-		 		printf("\nParent: child with pid = %d finished with code %d\n",
-		 		 child_pid, WEXITSTATUS(status) );
-		 	else if (WIFSTOPPED(status))
-		 		printf("\nParent: child %d finished with code %d\n",
-		 		 child_pid, WSTOPSIG(status) );
-		 		 
-		 	//waiting for the first child to finish	 
-		 	child_pid = wait(&status);
-		 	if (WIFEXITED(status))
-		 		printf("\nParent: child with pid = %d finished with code %d\n",
-		 		 child_pid, WEXITSTATUS(status) );
-		 	else if (WIFSTOPPED(status))
-		 		printf("\nParent: child %d finished with code %d\n",
-		 		 child_pid, WSTOPSIG(status) );
-		 
-		 return 0;
-	        }
-	}
-}
-\end{lstlisting}
-\begin{figure}[H]
-	\centering{\includegraphics[scale=0.5]{task3.png}} 
-	\caption{Пример работы программы №3}
-	\label{ris:task3}
-\end{figure}
-\newpage
-\begin{lstlisting}[label=four,caption = Передача сообщений с помощью программного канала, style = CStyle]
-/*
-exchanging messages with parent
-*/
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#define MESSAGE_SIZE 32
-
-int main(){
-	int child_1, child_2;
-	
-	//initializing pipe
-	int fd[2];
-	if (pipe(fd) == -1){
-		printf("Coundn't create a pipe\n");
-		exit(1);
-	}
-	
-	child_1 = fork();
-	if(child_1 == -1){
-		perror("Coulnd't fork child #1");
-		exit(1);
-	}
-	if (child_1 == 0){
+	%\def\chaptername{} % убирает "Глава"
+	\begin{titlepage}
+		\centering
+		{\scshape\LARGE МГТУ им. Баумана \par}
+		\vspace{3cm}
+		{\scshape\Large Лабораторная работа №2\par}
+		\vspace{0.5cm}	
+		{\scshape\Large По курсу: "Операционные системы"\par}
+		\vspace{1.5cm}
+		\centering
+		{\huge\bfseries Защищенный режим.\par}
+		\vspace{2cm}
+		\Large Работу выполнил: Мокеев Даниил, ИУ7-56\par
+		\vspace{0.5cm}
+		\Large Преподаватель:  Рязанова Н.Ю.\par
 		
-		 
-		close(fd[0]);
-		if (write(fd[1], "Hello from child #1, parent!\n",
-		 MESSAGE_SIZE) > 0)
-			printf("Child #1 sent a greeting to the parent\n");
-		 return 0;
-	}
-	if (child_1 > 0){
-		child_2 = fork();
-		if(child_2 == -1){
-			perror("Coulnd't fork child #2");
-			exit(1);
-	        }
-	        if (child_2 == 0){
-	        	sleep(1);
-	        	close(fd[0]);
-			if (write(fd[1], "Hello from child #2, parent!\n",
-			 MESSAGE_SIZE) > 0)
-				printf("Child #2 sent a greeting to the parent\n");
-			 	return 0;
-	        }else{
-		  	
-		  	char msg1[MESSAGE_SIZE], msg2[MESSAGE_SIZE];
-			close(fd[1]);
-			read(fd[0], msg1, MESSAGE_SIZE);
-			read(fd[0], msg2, MESSAGE_SIZE);
-			
-			printf("Parent read a message from his children: \n%s\n%s",
-			 msg1, msg2); 
-			
-			
-			
-		  	pid_t child_pid;
-		 	int status;
-		 	
-		 	//waiting for the second child to finish
-		 	child_pid = wait(&status);
-		 	if (WIFEXITED(status))
-		 		printf("\nParent: child with pid = %d finished with code %d\n",
-		 		 child_pid, WEXITSTATUS(status) );
-		 	else if (WIFSTOPPED(status))
-		 		printf("\nParent: child %d finished with code %d\n",
-		 		 child_pid, WSTOPSIG(status) );
-		 		 
-		 	//waiting for the first child to finish	 
-		 	child_pid = wait(&status);
-		 	if (WIFEXITED(status))
-		 		printf("\nParent: child with pid = %d finished with code %d\n",
-		 		 child_pid, WEXITSTATUS(status) );
-		 	else if (WIFSTOPPED(status))
-		 		printf("\nParent: child %d finished with code %d\n",
-		 		 child_pid, WSTOPSIG(status) );
-		 
-		 return 0;
-	        }
-	}
-}
-
-
-
-\end{lstlisting}
-\begin{figure}[H]
-	\centering{\includegraphics[scale=0.7]{task4.png}} 
-	\caption{Пример работы программы №4}
-	\label{ris:task4}
-\end{figure}
-\newpage
-\begin{lstlisting}[label=five,caption = Установка своего обработчика сигнала, style = CStyle]
-/*
-DIY sig handler
-*/
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <signal.h>
-#include <stdbool.h>
-#include <string.h>
-
-#define MESSAGE_SIZE 64
-#define SLEEP_TIME 3
-
-//flag is set to true if signal has been cought
-bool flag = false;
-
-void mySignalHandler(int snum){
-	printf("\nHandlig signal snum = %d in prosses...\n", snum);
-	printf("Done!\n");
-	flag = true;
-}
-
-int main(){
-	int child_1, child_2;
-	signal(SIGINT, mySignalHandler);
+		\vfill
+		\large \textit {Москва, 2020} \par
+	\end{titlepage}
 	
-	//initializing pipe
-	int fd[2];
-	if (pipe(fd) == -1){
-		printf("Coundn't create a pipe\n");
-		exit(1);
-	}
 	
-	child_1 = fork();
-	if(child_1 == -1){
-		perror("Coulnd't fork child #1");
-		exit(1);
-	}
-	if (child_1 == 0){
-		close(fd[1]);
-		sleep(SLEEP_TIME);
-		if (flag){
-			char msg[MESSAGE_SIZE];
-			if (read(fd[0], msg, MESSAGE_SIZE) > 0){
-				printf("Child #1 read from parent %s\n", msg);
-			}
-		}
+	\newpage
+	
+	\chapter{Листинг кода алгоритмов}
+	В данном разделе будут приведены листинги кода реализованных программ. 
+	
+	\begin{lstlisting}[label=one,caption = Процессы-сироты, language=nasm, style= nasm]
+		;
+		.386p
 		
-		return 0;
-	}
-	if (child_1 > 0){
-		child_2 = fork();
-		if(child_2 == -1){
-			perror("Coulnd't fork child #2");
-			exit(1);
-		}
-		if (child_2 == 0){
-			close(fd[1]);
-			
-			sleep(SLEEP_TIME);
-			if (flag){
-				char msg[MESSAGE_SIZE];
-				if (read(fd[0], msg, MESSAGE_SIZE) > 0){
-					printf("Child #2 read from parent %s\n", msg);
-				}
-			}
-			
-			return 0;
-		}else{
-			close(fd[0]);
-			printf("Parent's waiting for Ctrl+C being pressed to send messages from children\n");
-			sleep(SLEEP_TIME);
-			
-			if (flag){
-				//writing in pipe if we cought the signal
-				if (write(fd[1], "Hello, my child!\n", MESSAGE_SIZE) > 0)
-				printf("Parent sent his first greeting\n");
-				if (write(fd[1], "Hello again, my child!\n", MESSAGE_SIZE) > 0)
-				printf("Parent sent his second greeting\n");
-			}
+		descr struc
+		limit  dw 0
+		base_l dw 0
+		base_m db 0
+		attr_1 db 0
+		arrt_2 db 0
+		base_h db 0
+		descr ends
 		
-			pid_t child_pid;
-			int status;
-			
-			//waiting for the second child to finish
-			child_pid = wait(&status);
-			if (WIFEXITED(status))
-			printf("Parent: child with pid = %d finished with code %d\n",
-			child_pid, WEXITSTATUS(status) );
-			else if (WIFSTOPPED(status))
-			printf("Parent: child %d finished with code %d\n",
-			child_pid, WSTOPSIG(status) );
-			
-			//waiting for the first child to finish	 
-			child_pid = wait(&status);
-			if (WIFEXITED(status))
-			printf("Parent: child with pid = %d finished with code %d\n",
-			child_pid, WEXITSTATUS(status) );
-			else if (WIFSTOPPED(status))
-			printf("Parent: child %d finished with code %d\n",
-			child_pid, WSTOPSIG(status) );
-			return 0;
-		}
-	}
-}
-\end{lstlisting}
-\begin{figure}[H]
-	\centering{\includegraphics[scale=1]{task5-1.png}} 
-	\caption{Пример работы программы №5: был подан сигнал}
-	\label{ris:task5-1}
-\end{figure}
-\begin{figure}[H]
-	\centering{\includegraphics[scale=1]{task5-2.png}} 
-	\caption{Пример работы программы №5: сигнал не был подан}
-	\label{ris:task5-2}
-\end{figure}
-\newpage
-
-
-
+		
+		intr struc
+		offs_l dw 0
+		sel    dw 0
+		rsrv   db 0
+		attr   db 0
+		offs_h dw 0
+		intr ends
+		
+		
+		pm_seg segment para public 'code' use32
+		assume cs:pm_seg
+		
+		gdt             label byte
+		gdt_null        descr <>
+		gdt_data        descr <0FFFFh,0,0,92h,0CFh,0>
+		gdt_code16      descr <rm_seg_size-1,0,0,98h,0,0>
+		gdt_code32      descr <pm_seg_size-1,0,0,98h,0CFh,0>
+		gdt_data32      descr <pm_seg_size-1,0,0,92h,0CFh,0>
+		gdt_stack32     descr <stack_size-1,0,0,92h,0CFh,0>
+		gdt_size=$-gdt
+		
+		gdtr            dw gdt_size-1
+		dd ?
+		
+		; Селекторы сегментов
+		sel_data        equ 8
+		sel_code16      equ 16
+		sel_code32      equ 24
+		sel_data32      equ 32
+		sel_stack32     equ 40
+		
+		idt             label byte
+		trap1           intr 13 dup (<0,sel_code32,0,8Fh,0>)
+		trap13          intr <0,sel_code32,0,8Fh,0>
+		trap2           intr 18 dup (<0,sel_code32,0,8Fh,0>)
+		int_time        intr <0,sel_code32,0,8Eh,0>
+		int_keyboard    intr <0,sel_code32,0,8Eh,0>
+		idt_size=$-idt
+		
+		idtr            dw idt_size-1
+		dd ?
+		
+		rm_idtr         dw 3FFh,0,0
+		
+		hex             db 'h'
+		hex_len=$-hex
+		mb              db 'MB'
+		mb_len=$-mb
+		
+		hello_msg       db 'DOS is in real mode now.$'
+		pm_msg          db 'DOS switched to protected mode.'
+		pm_msg_len=$-pm_msg
+		tt_msg          db 'Timer ticks:      '
+		tt_msg_len=$-tt_msg
+		am_msg          db 'Available memory: '
+		am_msg_len=$-am_msg
+		esc_from_pr     db 'Press ESC to switch to real mode...'
+		esc_from_pr_len=$-esc_from_pr
+		ret_to_rm_msg   db 'DOS switched to real mode.$'
+		
+		scan2ascii      db 0,1Bh,'1','2','3','4','5','6','7','8','9','0','-','=',8
+		db ' ','q','w','e','r','t','y','u','i','o','p','[',']','$'
+		db ' ','a','s','d','f','g','h','j','k','l',';','""',0
+		db '\','z','x','c','v','b','n','m',',','.','/',0,0,0,' ',0,0
+		db 0,0,0,0,0,0,0,0,0,0,0,0
+		
+		attr1           db 3Fh
+		attr2           db 4Fh
+		screen_addr     dd 640
+		timer           dd 0
+		
+		master          db 0
+		slave           db 0
+		
+		; Макрос вывода строки в видеобуфер
+		print_str macro msg,len,offset
+		local print
+		push   ebp
+		mov    ecx,len
+		mov    ebp,0B8000h
+		add    ebp,offset
+		xor    esi,esi
+		mov    ah,attr2
+		print:
+		mov    al,byte ptr msg[esi]
+		mov    es:[ebp],ax
+		add    ebp,2
+		inc    esi
+		loop   print
+		pop    ebp
+		endm
+		
+		; Макрос отправки сигнал EOI контроллеру прерываний
+		send_eoi macro
+		mov    al,20h
+		out    20h,al
+		endm
+		
+		pm_start:
+		; Установить сегменты защищенного режима
+		mov    ax,sel_data
+		mov    ds,ax
+		mov    es,ax
+		mov    ax,sel_stack32
+		mov    ebx,stack_size
+		mov    ss,ax
+		mov    esp,ebx
+		
+		; Разрешить маскируемые прерывания
+		sti
+		
+		; Вывести справочную информацию в видеобуфер
+		print_str pm_msg,pm_msg_len,360
+		print_str tt_msg,tt_msg_len,520
+		print_str am_msg,am_msg_len,5*160+40
+		print_str esc_from_pr,esc_from_pr_len,6*160+40
+		
+		call available_memory
+		jmp    $
+		
+		; Обработчик исключения общей защиты
+		exc13 proc
+		pop    eax
+		iret
+		exc13 endp
+		
+		; Обработчик остальных исключений
+		dummy_exc proc
+		iret
+		dummy_exc endp
+		
+		; Обработчик прерывания от системного таймера
+		int_time_handler:
+		push   eax
+		push   ebp
+		push   ecx
+		push   dx
+		
+		; Загрузить счетчик
+		mov    eax,timer
+		
+		; Вывести счетчик в видеобуфер
+		mov    ebp,0B8000h
+		mov    ecx,8
+		add    ebp,530+2*(tt_msg_len)
+		mov    dh,attr2
+		main_loop:
+		mov    dl,al
+		and    dl,0Fh
+		cmp    dl,10
+		jl     less_than_10
+		sub    dl,10
+		add    dl,'A'
+		jmp    print
+		less_than_10:
+		add    dl,'0'
+		print:
+		mov    es:[ebp],dx
+		ror    eax,4
+		sub    ebp,2
+		loop   main_loop
+		
+		; Инкрементировать и сохранить счетчик
+		inc    eax
+		mov    timer,eax
+		
+		send_eoi
+		pop    dx
+		pop    ecx
+		pop    ebp
+		pop    eax
+		
+		iretd
+		
+		; Обработчик прерывания от клавиатуры
+		int_keyboard_handler:
+		push   eax
+		push   ebx
+		push   es
+		push   ds
+		
+		; Получить из порта клавиатуры скан-код нажатой клавиши
+		in     al,60h
+		
+		; Нажата клавиша ESC
+		cmp    al,01h
+		je     esc_pressed
+		
+		; Нажата необслуживаемая клавиша
+		cmp    al,39h
+		ja     skip_translate
+		
+		; Преобразовать скан-код в ASCII
+		mov    bx,sel_data32
+		mov    ds,bx
+		mov    ebx,offset scan2ascii
+		xlatb
+		mov    bx,sel_data
+		mov    es,bx
+		mov    ebx,screen_addr
+		
+		; Нажата клавиша Backspace
+		cmp    al,8
+		je     bs_pressed
+		
+		; Вывести символ на экран
+		mov    es:[ebx+0B8000h],al
+		add    dword ptr screen_addr,2
+		jmp    skip_translate
+		
+		bs_pressed:
+		; Удалить символ
+		mov    al,' '
+		sub    ebx,2
+		mov    es:[ebx+0B8000h],al
+		mov    screen_addr,ebx
+		
+		skip_translate:
+		; Разрешить работу клавиатуры
+		in     al,61h
+		or     al,80h
+		out    61h,al
+		
+		send_eoi
+		pop    ds
+		pop    es
+		pop    ebx
+		pop    eax
+		
+		iretd
+		
+		esc_pressed:
+		; Разрешить работу клавиатуры
+		in     al,61h
+		or     al,80h
+		out    61h,al
+		
+		send_eoi
+		pop    ds
+		pop    es
+		pop    ebx
+		pop    eax
+		
+		; Запретить маскируемые прерывания
+		cli
+		
+		; Вернуться в реальный режим
+		db    0EAh
+		dd    offset rm_return
+		dw    sel_code16
+		
+		; Процедура определения доступного объема оперативной памяти
+		available_memory proc
+		push   ds
+		
+		mov    ax,sel_data
+		mov    ds,ax
+		
+		; Пропустить первый мегабайт памяти
+		mov    ebx,100001h
+		; Установить проверочный байт
+		mov    dl,0FFh
+		; Установить максимальный объем оставшейся оперативной памяти
+		mov    ecx,0FFEFFFFFh
+		
+		check:
+		; Проверка сигнатуры
+		mov    dh,ds:[ebx]
+		mov    ds:[ebx],dl
+		cmp    ds:[ebx],dl
+		jnz    end_of_memory
+		mov    ds:[ebx],dh
+		inc    ebx
+		loop   check
+		
+		end_of_memory:
+		pop    ds
+		xor    edx,edx
+		mov    eax,ebx
+		
+		; Разделить на мегабайт
+		mov    ebx,100000h
+		div    ebx
+		
+		push   ecx
+		push   dx
+		push   ebp
+		
+		; Вывести объем памяти на экран
+		mov    ebp,0B8000h
+		mov    ecx,8
+		add    ebp,5*160+2*(am_msg_len+7)+40
+		mov    dh,attr2
+		cycle:
+		mov    dl,al
+		and    dl,0Fh
+		cmp    dl,10
+		jl     number
+		sub    dl,10
+		add    dl,'A'
+		jmp    print_m
+		number:
+		add    dl,'0'
+		print_m:
+		mov    es:[ebp],dx
+		ror    eax,4
+		
+		sub    ebp,2
+		loop   cycle
+		sub    ebp,0B8000h
+		
+		pop    ebp
+		pop    dx
+		pop    ecx
+		ret
+		available_memory endp
+		
+		pm_seg_size=$-gdt
+		pm_seg ends
+		
+		
+		rm_seg segment para public 'code' use16
+		assume cs:rm_seg,ds:pm_seg,ss:s_seg
+		
+		; Макрос очистки экрана
+		cls macro
+		mov    ax,3
+		int    10h
+		endm
+		
+		; Макрос печати строки
+		print_str macro msg
+		mov    ah,9
+		mov    edx,offset msg
+		int    21h
+		endm
+		
+		rm_start:
+		mov    ax,pm_seg
+		mov    ds,ax
+		
+		cls
+		
+		mov    AX, 0B800h
+		mov    ES, AX
+		mov    DI, 200
+		mov    cx, 24
+		mov    ebx, offset hello_msg
+		mov    ah, attr1
+		mov    al, byte ptr [ebx]
+		screen0:
+		stosw
+		inc    bx
+		mov    al, byte ptr [ebx]
+		loop   screen0
+		
+		
+		; Вычислить базы для всех используемых дескрипторов сегментов
+		xor    eax,eax
+		mov    ax,rm_seg
+		shl    eax,4
+		mov    word ptr gdt_code16+2,ax
+		shr    eax,16
+		mov    byte ptr gdt_code16+4,al
+		mov    ax,pm_seg
+		shl    eax,4
+		push   eax
+		push   eax
+		mov    word ptr gdt_code32+2,ax
+		mov    word ptr gdt_stack32+2,ax
+		mov    word ptr gdt_data32+2,ax
+		shr    eax,16
+		mov    byte ptr gdt_code32+4,al
+		mov    byte ptr gdt_stack32+4,al
+		mov    byte ptr gdt_data32+4,al
+		
+		; Вычислить линейный адрес GDT
+		pop    eax
+		add    eax,offset GDT
+		mov    dword ptr gdtr+2,eax
+		mov    word ptr gdtr,gdt_size-1
+		
+		; Установить регистр GDTR
+		lgdt   fword ptr gdtr
+		
+		; Вычислить линейный адрес IDT
+		pop    eax
+		add    eax,offset idt
+		mov    dword ptr idtr+2,eax
+		mov    word ptr idtr,idt_size-1
+		
+		; Заполнить смещения в дескрипторах прерываний
+		mov    eax,offset dummy_exc
+		mov    trap1.offs_l,ax
+		shr    eax,16
+		mov    trap1.offs_h,ax
+		mov    eax,offset exc13
+		mov    trap13.offs_l,ax
+		shr    eax,16
+		mov    trap13.offs_h,ax
+		mov    eax,offset dummy_exc
+		mov    trap2.offs_l,ax
+		shr    eax,16
+		mov    trap2.offs_h,ax
+		mov    eax,offset int_time_handler
+		mov    int_time.offs_l,ax
+		shr    eax,16
+		mov    int_time.offs_h,ax
+		mov    eax,offset int_keyboard_handler
+		mov    int_keyboard.offs_l,ax
+		shr    eax,16
+		mov    int_keyboard.offs_h,ax
+		
+		; Cохранить маски ведущего и ведомого контроллеров прерываний
+		in     al,21h
+		mov    master,al
+		in     al,0A1h
+		mov    slave,al
+		
+		; Перепрограммировать ведущий контроллер прерываний
+		mov    dx,20h
+		mov    al,11h
+		out    dx,al
+		inc    dx
+		mov    al,20h
+		out    dx,al
+		mov    al,4
+		out    dx,al
+		mov    al,1
+		out    dx, al
+		
+		; Запретить все прерывания в ведущем контроллере, кроме IRQ0 и IRQ1
+		mov    al,11111100b
+		out    dx,al
+		
+		; Запретить все прерывания в ведомом контроллере
+		mov    dx,0A1h
+		mov    al,0FFh
+		out    dx,al
+		
+		; Загрузить регистр IDTR
+		lidt   fword ptr idtr
+		
+		; Открыть линию А20
+		mov    al,0D1h
+		out    64h,al
+		mov    al,0DFh
+		out    60h,al
+		
+		; Отключить маскируемые и немаскируемые прерывания
+		cli
+		in     al,70h
+		or     al,80h
+		out    70h,al
+		
+		; Перейти в защищенный режим установкой соответствующего бита регистра CR0
+		mov    eax,cr0
+		or     al,1
+		mov    cr0,eax
+		
+		; Перейти в сегмент кода защищенного режима
+		db     66h
+		db     0EAh
+		dd     offset pm_start
+		dw     sel_code32
+		
+		rm_return:
+		; Перейти в реальный режим сбросом соответствующего бита регистра CR0
+		mov    eax,cr0
+		and    al,0FEh
+		mov    cr0,eax
+		
+		; Сбросить очередь и загрузить CS
+		db     0EAh
+		dw     $+4
+		dw     rm_seg
+		
+		; Восстановить регистры для работы в реальном режиме
+		mov    ax,pm_seg
+		mov    ds,ax
+		mov    es,ax
+		mov    ax,s_seg
+		mov    ss,ax
+		mov    ax,stack_size
+		mov    sp,ax
+		
+		; Инициализировать контроллер прерываний
+		mov    al,11h
+		out    20h,al
+		mov    al,8
+		out    21h,al
+		mov    al,4
+		out    21h,al
+		mov    al,1
+		out    21h,al
+		
+		; Восстановить маски контроллеров прерываний
+		mov    al,master
+		out    21h,al
+		mov    al,slave
+		out    0A1h,al
+		
+		; Загрузить таблицу дескрипторов прерываний реального режима
+		lidt   fword ptr rm_idtr
+		
+		; Закрыть линию А20
+		mov    al,0D1h
+		out    64h,al
+		mov    al,0DDh
+		out    60h,al
+		
+		; Разрешить немаскируемые и маскируемые прерывания
+		in     al,70h
+		and    al,07FH
+		out    70h,al
+		sti
+		
+		;cls
+		mov    AX, 0B800h
+		mov    ES, AX
+		mov    DI, 7*160+40
+		mov    cx, 26
+		mov    ebx, offset ret_to_rm_msg
+		mov    ah, attr1
+		mov    al, byte ptr [ebx]
+		screen01:
+		stosw
+		inc    bx
+		mov    al, byte ptr [ebx]
+		loop   screen01
+		
+		mov    ah,4Ch
+		int    21h
+		rm_seg_size = $-rm_start
+		rm_seg ends
+		
+		s_seg segment para stack 'stack'
+		stack_start db 100h dup(?)
+		stack_size=$-stack_start
+		s_seg ends
+		end    rm_start
+	\end{lstlisting}
+	
 \end{document}

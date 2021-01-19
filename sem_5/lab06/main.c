@@ -4,8 +4,9 @@
 
 #define READERS 5
 #define WRITERS 3
-#define WRITERS_ITERS 7
-#define SLEEP_TIME 300
+#define WRITERS_ITTER 4
+#define SLEEP_TIME 200
+#define READER_BORDER "\t\t\t\t\t\t"
 
 HANDLE writers[WRITERS];
 HANDLE readers[READERS];
@@ -18,14 +19,14 @@ volatile LONG waiting_readers = 0;
 volatile LONG active_readers = 0;
 bool is_writer_active = false;
 
-volatile int value = 0;
+int value = 0;
 
 void start_read(void) {
 	InterlockedIncrement(&waiting_readers);
 	if (is_writer_active || WaitForSingleObject(can_write, 0) == WAIT_OBJECT_0) {
 		WaitForSingleObject(can_read, INFINITE);
 	}
-	// Мьютекс тут не нужен, но Рязанова требует тыкнуть для общего развития
+
 	WaitForSingleObject(mutex, INFINITE);
 
 	InterlockedDecrement(&waiting_readers);
@@ -45,9 +46,9 @@ void stop_read(void) {
 }
 
 DWORD WINAPI reader(LPVOID lpParams) {
-	while (value < WRITERS * WRITERS_ITERS) {
+	while (value < 3 * WRITERS_ITTER) {
 		start_read();
-		printf("---------------------------------Reader #%ld; read value: %d\n", (int) lpParams, value);
+		printf(READER_BORDER"Reader #%ld; read value: %d\n", (int) lpParams, value);
 		stop_read();
 		Sleep(SLEEP_TIME);
 	}
@@ -77,10 +78,11 @@ void stop_write(void) {
 }
 
 DWORD WINAPI writer(LPVOID lpParams) {
-	for (int i = 0; i < WRITERS_ITERS; ++i) {
+	int i = 0;
+	for (int i = 0; i < WRITERS_ITTER; ++i) {
 		start_write();
 
-		++value;
+		value++;
 		printf("Writer #%ld wrote value: %ld\n", (int) lpParams, value);
 
 		stop_write();
@@ -92,18 +94,16 @@ DWORD WINAPI writer(LPVOID lpParams) {
 
 int init_handles(void) {
 	if ((mutex = CreateMutex(NULL, FALSE, NULL)) == NULL) {
-		perror("CreateMutex");
+		perror("error while CreateMutex");
 		return EXIT_FAILURE;
 	}
-	// Тут создаем события с автоматическим и ручным сбросом соответственно
-	// Правильней, проще и логичней было сделать наоборот, но Рязанова
-	// видимо не понимает, как работают события, и требует делать так
-	if ((can_read = CreateEvent(NULL, FALSE, TRUE, NULL)) == NULL) {
-		perror("CreateEvent");
+
+	if ((can_read = CreateEvent(NULL, TRUE, TRUE, NULL)) == NULL) {
+		perror("error while CreateEvent can_read");
 		return EXIT_FAILURE;
 	}
-	if ((can_write = CreateEvent(NULL, TRUE, TRUE, NULL)) == NULL) {
-		perror("CreateEvent");
+	if ((can_write = CreateEvent(NULL, FALSE, TRUE, NULL)) == NULL) {
+		perror("error while CreateEvent can_write");
 		return EXIT_FAILURE;
 	}
 
@@ -113,7 +113,7 @@ int init_handles(void) {
 int create_threads(HANDLE *threads, int threads_count, DWORD (*on_thread)(LPVOID)) {
 	for (int i = 0; i < threads_count; ++i) {
 		if ((threads[i] = CreateThread(NULL, 0, on_thread, (LPVOID) i, 0, NULL)) == NULL) {
-			perror("CreateThread");
+			perror("error while CreateThread");
 			return EXIT_FAILURE;
 		}
 	}
