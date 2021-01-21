@@ -32,13 +32,21 @@ int main(){
 		 
 		 return 0;
 	        }else{	
-	        	sleep(2);
 	       	printf("Parent: pid=%d; group=%d; ppid=%d\n",
 		  	 getpid(), getpgrp(), getppid());
 		 	
 		 	pid_t child_pid;
 		 	int status;
 		 	
+		 	child_pid = wait(&status);
+		 	if (WIFEXITED(status))
+		 		printf("Parent: child %d finished with code %d\n",
+		 		 child_pid, WEXITSTATUS(status) );
+		 	else if (WIFSTOPPED(status))
+		 		printf("Parent: child %d finished with code %d\n",
+		 		 child_pid, WSTOPSIG(status) );
+		 		 
+		 		 
 		 	child_pid = wait(&status);
 		 	if (WIFEXITED(status))
 		 		printf("Parent: child %d finished with code %d\n",
