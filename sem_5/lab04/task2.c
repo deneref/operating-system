@@ -14,7 +14,6 @@ int main(){
 		exit(1);
 	}
 	if (child_1 == 0){
-		sleep(1);
 		printf("Child #1: pid=%d; group=%d; ppid=%d\n",
 		 getpid(), getpgrp(), getppid());
 		 
@@ -46,7 +45,6 @@ int main(){
 		 		printf("Parent: child %d finished with code %d\n",
 		 		 child_pid, WSTOPSIG(status) );
 		 		 
-		 		 
 		 	child_pid = wait(&status);
 		 	if (WIFEXITED(status))
 		 		printf("Parent: child %d finished with code %d\n",
@@ -54,6 +52,8 @@ int main(){
 		 	else if (WIFSTOPPED(status))
 		 		printf("Parent: child %d finished with code %d\n",
 		 		 child_pid, WSTOPSIG(status) );
+		 		 
+		 		 
 		 return 0;
 	        }
 	}
